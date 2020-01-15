@@ -1,0 +1,3 @@
+[submodule "dependencies/SerialPortGateway"]
+	path = dependencies/SerialPortGateway
+	url = https://github.com/je-s/SerialPortGateway.git

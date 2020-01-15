@@ -1,0 +1,4 @@
+/dev/ttyS0
+/dev/ttyS1
+/dev/ttyS2
+/dev/ttyS3

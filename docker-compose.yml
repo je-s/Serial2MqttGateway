@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+    devenv:
+        build: ./
+        image: serial2mqttgateway:latest
+        privileged: true
+        volumes:
+            - ${GATEWAY_CONFIG}:/config/config.cfg
+            - ${HARDWARE_WHITELIST}:/config/hardware-whitelist.txt
+            - ${SERIALPORT_BLACKLIST}:/config/port-blacklist.txt
+            - ${MQTT_CERT}:/config/cert/trustid-x3-root.pem
+#            - ${LOG_PATH}:/logs
+        stdin_open: true
+        tty: true
+        entrypoint: /bin/bash
+    daemon:
+        build: ./
+        image: serial2mqttgateway:latest
+        privileged: true
+        volumes:
+            - ${GATEWAY_CONFIG}:/config/config.cfg
+            - ${HARDWARE_WHITELIST}:/config/hardware-whitelist.txt
+            - ${SERIALPORT_BLACKLIST}:/config/port-blacklist.txt
+            - ${MQTT_CERT}:/config/cert/trustid-x3-root.pem
+#            - ${LOG_PATH}:/logs
+        stdin_open: true
+        tty: true
+        restart: unless-stopped
+        entrypoint: /bin/bash -c "/repos/Serial2MqttGateway/bin/serial2mqtt-gateway /config/config.cfg /config/hardware-whitelist.txt /config/port-blacklist.txt /logs"
