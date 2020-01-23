@@ -1,5 +1,5 @@
 # Serial2MqttGateway
-The Serial2MqttGateway functions as a gateway between MQTT and serial devices, which can each be adressed and interfered with via a unique topics based on the device's respective device ID.\
+The Serial2MqttGateway functions as a gateway between MQTT and serial devices, which can each be adressed and interfered with via unique topics based on the device's respective device ID.\
 The application is based on the [SerialPortGateway](https://github.com/je-s/SerialPortGateway).
 
 Features:
@@ -33,7 +33,7 @@ Features:
 8. [Usage](#usage)
     1. [Configuration files](#configuration-files)
         1. [Main Config file](#main-config-file)
-        2. [Hardware ID Whitelist](#hardware-ID-whitelist)
+        2. [Hardware ID Whitelist](#hardware-id-whitelist)
         3. [Serial Port Blacklist](#serial-port-blacklist)
     2. [Starting the application in a Docker container](#starting-the-application-in-a-docker-container)
     3. [Communicating with the gateway](#communicating-with-the-gateway)
@@ -41,12 +41,12 @@ Features:
 9. [Notes](#notes)
 10. [License](#license)
 
-# Files & Folder structure
+# Files and Folder structure
 * `config` contains the configuration files
     * Sample Config file
     * Sample hardware ID whitelist
     * Sample serial port blacklist
-    * `cert` contains a sample cert (from Let's encrypt, in case you have a service which uses a cert issued by them)
+    * `cert` contains a sample cert (from Let's Encrypt, in case you have a service which uses a cert issued by them)
 * `dependencies` is the place where all dependencies get downloaded to (See [Installation](#Installation) for further details)
 * `src` contains the source code
     * `Serial2MqttGateway` class
@@ -60,7 +60,7 @@ Features:
 * `Makefile` is for compiling the application
 
 # Dependencies
-If you follow the [Installation](#Installation) instructions, some dependencies will be cloned directly into the dependencies folder:
+If you follow the [Installation](#installation) instructions, some dependencies will be cloned directly into the dependencies folder:
 * [SerialPortGateway](https://github.com/je-s/SerialPortGateway)
     * [Exception](https://github.com/je-s/Exception)
     * [Logger](https://github.com/je-s/Logger)
@@ -75,6 +75,7 @@ In case you want to use the Serial2MqttGateway without Docker, you need the foll
 * [wjwwood's serial library](https://github.com/wjwwood/serial). This also requires:
     * cmake, python, python-pip, catkin
 * libmosquittopp-dev
+
 If there's anything not working, try to sync your configuration with that from the Dockerfile (Or drop me an issue if nothing helps).
 
 # Installation
@@ -97,7 +98,7 @@ In order to compile Serial2MqttGateway, following files need to be compiled and 
 * `<path>/Serial2MqttGateway/dependencies/SerialPortGateway/dependencies/Config/src/Config.cpp`
 * `<path>/Serial2MqttGateway/dependencies/SerialPortGateway/src/SerialDevice.cpp`
 * `<path>/Serial2MqttGateway/dependencies/SerialPortGateway/src/SerialMessage.cpp`
-* `<path>/Serial2MqttGateway/dependencies/SerialPortGateway/src/SerialPortGatewacpp`
+* `<path>/Serial2MqttGateway/dependencies/SerialPortGateway/src/SerialPortGateway.cpp`
 
 (Take a look at the Makefile.)
 
@@ -113,13 +114,13 @@ The sources are also documented where necessary/useful, but everything that's no
 
 # MQTT topic hierarchy
 In order to communicate with the MQTT broker in a consistent way, a topic hierarchy had to be defined. This hierarchy allows to access a fixed structure through which all necessary information can be exchanged.\
-In the following examples and tables there's also defined whether the topic is/must be retained, and on which QoS-Level information should be exchanged.
-This is crucial for working correctly.
+In the following examples and tables there's also defined whether the topic is/must be retained, and on which QoS-Level information should be exchanged.\
+This is crucial for the gateway working correctly.
 
-The hierarchy generally starts with the gateway ID, and can optionally be supplemented by a preﬁx:
+The hierarchy generally starts with the gateway ID, and can optionally be supplemented by a preﬁx (The gateway ID will only be preceeded by a slash (`/`) if a prefix is given):\
 `<optionalPrefix>/<gatewayId>`
 
-The gateway ID is then followed by a subtopic:\
+The gateway ID is then followed by a subtopic:
 `<optionalPrefix>/<gatewayId>/<subtopic>`
 
 Those subtopics can be one of the following:
@@ -128,9 +129,9 @@ Those subtopics can be one of the following:
 | ----- | ------- | --------- | --------- |
 | `connected` | Shows whether the gateway is connected or not (0 or 1) | 2 | true |
 | `devices` | Contains all device information & (sub-)topics | 2 | true |
-| `command` | Endpoint on which the gateway listens on commands<br>Messages send to this endpoint should NOT be retained, to prevent unwanted execution of commands. | 2 | false |
-| `response` | Topic where possible responses get send to after a gateway command has been invoked. | 2 | true |
-| `devicelist` | Topic where the device list gets send to, if requested via gateway command. | 2 | true |
+| `command` | Endpoint on which the gateway listens on commands<br>Messages send to this endpoint should NOT be retained, to prevent unwanted execution of commands | 2 | false |
+| `response` | Topic where possible responses get send to after a gateway command has been invoked | 2 | true |
+| `devicelist` | Topic where the device list gets send to, if requested via gateway command | 2 | true |
 
 In the case of the `devices` topic, the topic has a subtopic for each device ID which is or was connected:\
 `<optionalPrefix>/<gatewayId>/devices/<deviceId>`
@@ -144,6 +145,7 @@ Apart from those subtopics based on message types, there are two special subtopi
 | ----- | ------- | --------- | --------- |
 | `connected` | Shows whether the device is connected or not (0 or 1) | 2 | true |
 | `command` | Endpoint on which the gateway listens on commands for serial devices<br>Messages send to this endpoint should NOT be retained, to prevent unwanted execution of commands. | 2 | false |
+
 These two subtopics should never be used as a message type by any of the connected devices.
 
 Every topic can be listened on, in order to -for instance- log data to a database or something similar.\
@@ -186,12 +188,12 @@ On top of the mandatory configuration keys defined [here](https://github.com/je-
 
 | Key | Purpose | Value Description | Default |
 | --- | ------- | ----------------- | ------- |
-| GATEWAY_ID | ID of the gateway.<br>Needed to use and distinguish multiple gateways on the same topic level from one another<br>Is also important to be able to receive gateway commands. | String | `testgateway1` |
+| GATEWAY_ID | ID of the gateway<br>Needed to use and distinguish multiple gateways on the same topic level from one another<br>Is also important to be able to receive gateway commands | String | `testgateway1` |
 | MQTT_CAFILE | Configuration on whether to use a CA file or not, in case you want to use encrypted communication for MQTT | String<br>`none` if no CA file is used<br>`<path/To/The/Ca/File>` if a CA file is used | `none` |
 | MQTT_HOST | MQTT host, where the broker is running | String (Hostname or IP) | `broker.hivemq.com` |
 | MQTT_PORT | MQTT port, where the broker is listening on | Port number | `1883` |
 | MQTT_USERNAME | MQTT username to use when logging in | String (Can be empty) | `test` |
-| MQTT_PASSWORD | MQTTpassword to use when logging in | String (Can be empty) | `Test1234` |
+| MQTT_PASSWORD | MQTT password to use when logging in | String (Can be empty) | `Test1234` |
 | MQTT_TOPIC_PREFIX | MQTT topic prefix which should be used<br>Is set before every topic the Serial2MqttGateway is publishing on | String (Can be empty) | `test/gateways` |
 
 ### Hardware ID Whitelist
@@ -246,7 +248,7 @@ There are following commands currently implemented:
 | add | Tries to add a serial device on a specific serial port | `<path/to/serial/port>` |
 | addnew | Tries to add all new serial devices, which are not already registered/added in the gateway |  |
 | delete | Tries to delete a serial device with a specific device ID | `<deviceId>` |
-| deleteall | Tries to delete all currently registered serial devices from teh gateway |  |
+| deleteall | Tries to delete all currently registered serial devices from the gateway |  |
 
 ## Communicating with the devices
 In order to send commands to a specific device, you must send a message with the corresponding content to this topic:\
