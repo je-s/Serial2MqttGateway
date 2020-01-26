@@ -22,14 +22,15 @@ BIN_DIR                     =       ./bin
 BIN_NAME                    =       serial2mqtt-gateway
 
 .PHONY: all
-
 all: makeDirs buildMsg build
 
+.PHONY: makeDirs
 makeDirs:
 	@if [ ! -d $(BIN_DIR) ]; then \
 		mkdir $(BIN_DIR); \
 	fi
 
+.PHONY: buildMsg
 buildMsg:
 	@echo "\e[92m---- Building \"$(BIN_NAME)\"...\e[0m"
 
@@ -40,10 +41,12 @@ build: $(OBJS)
 %.o: %.cpp
 	@$(CXX) $(CFLAGS) -c $< -o $@ $(LIBS) $(INCLUDES)
 
+.PHONY: buildDockerImage
 buildDockerImage:
 	@echo "\e[92m--- Building Docker-Image $(DOCKER_IMAGE_NAME)\e[0m"
 	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) ./
 
+.PHONY: clean
 clean:
 	@echo "\e[92m---- Cleaning up...\e[0m"
 	@rm -r $(OBJS)
