@@ -219,7 +219,7 @@ void Serial2MqttGateway::onMqttMessage( std::string topic, std::string message )
     // Expression extracts parent topics from topics like:
     //  /<prefix>/gateways/<gatewayId>/command -> gateways
     //  /<prefix>/gateways/<gatewayId>/devices/<deviceId>/command -> devices
-    std::regex matchParentTopicExpression( "(?:.*\\/)(.*)(?=\\/.*\\/" + TOPIC_COMMAND + ")" );
+    std::regex matchParentTopicExpression( "(?:.*\\/|)(.*)(?=\\/.*\\/" + TOPIC_COMMAND + ")" );
 
     std::smatch matchId, matchParentTopic;
     std::regex_search( topic, matchId, matchIdExpression );
