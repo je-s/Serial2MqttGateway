@@ -16,6 +16,10 @@
 
 #include "Serial2MqttGateway.hpp"
 
+const std::string Serial2MqttGateway::MQTT_SSL_NO_FILE = "none";
+const std::string Serial2MqttGateway::MQTT_PROTOCOL_SSL = "ssl";
+const std::string Serial2MqttGateway::MQTT_PROTOCOL_WSS = "wss";
+const std::string Serial2MqttGateway::MQTT_CONNECTION_SUCCESSFUL = "0";
 const std::string Serial2MqttGateway::TOPIC_STATUS = "status";
 const std::string Serial2MqttGateway::TOPIC_DEVICES = "devices";
 const std::string Serial2MqttGateway::TOPIC_COMMAND = "command";
@@ -59,6 +63,21 @@ std::string Serial2MqttGateway::getGatewayId()
     return this->id;
 }
 
+void Serial2MqttGateway::setMqttProtocol( std::string mqttProtocol )
+{
+    if ( mqttProtocol.empty() )
+    {
+        throw Exception( "MQTT protocol must not be empty." );
+    }
+
+    this->mqttProtocol = mqttProtocol;
+}
+
+std::string Serial2MqttGateway::getMqttProtocol()
+{
+    return this->mqttProtocol;
+}
+
 void Serial2MqttGateway::setMqttHost( std::string mqttHost )
 {
     if ( mqttHost.empty() )
@@ -84,14 +103,49 @@ int Serial2MqttGateway::getMqttPort()
     return this->mqttPort;
 }
 
-void Serial2MqttGateway::setMqttCaFile( std::string mqttCaFile )
+void Serial2MqttGateway::setMqttWaitUntilReconnect( int mqttWaitUntilReconnect )
 {
-    this->mqttCaFile = mqttCaFile;
+    this->mqttWaitUntilReconnect = mqttWaitUntilReconnect;
 }
 
-std::string Serial2MqttGateway::getMqttCaFile()
+int Serial2MqttGateway::getMqttWaitUntilReconnect()
 {
-    return this->mqttCaFile;
+    return this->mqttWaitUntilReconnect;
+}
+
+std::string Serial2MqttGateway::getMqttServerUri()
+{
+    return std::string( getMqttProtocol() + "://" + getMqttHost() + ":" + std::to_string( getMqttPort() ) );
+}
+
+void Serial2MqttGateway::setMqttServerCertificateFile( std::string mqttServerCertificateFile )
+{
+    this->mqttServerCertificateFile = mqttServerCertificateFile;
+}
+
+std::string Serial2MqttGateway::getMqttServerCertificateFile()
+{
+    return this->mqttServerCertificateFile;
+}
+
+void Serial2MqttGateway::setMqttClientCertificateFile( std::string mqttClientCertificateFile )
+{
+    this->mqttClientCertificateFile = mqttClientCertificateFile;
+}
+
+std::string Serial2MqttGateway::getMqttClientCertificateFile()
+{
+    return this->mqttClientCertificateFile;
+}
+
+void Serial2MqttGateway::setMqttClientKeyFile( std::string mqttClientKeyFile )
+{
+    this->mqttClientKeyFile = mqttClientKeyFile;
+}
+
+std::string Serial2MqttGateway::getMqttClientKeyFile()
+{
+    return this->mqttClientKeyFile;
 }
 
 void Serial2MqttGateway::setMqttUsername( std::string mqttUsername )
@@ -143,74 +197,222 @@ std::string Serial2MqttGateway::getMqttTopic( std::string appendix )
     return topic.str();
 }
 
+void Serial2MqttGateway::setMqttConnectionOptions( mqtt::connect_options mqttConnectionOptions )
+{
+    this->mqttConnectionOptions = mqttConnectionOptions;
+}
+
+mqtt::connect_options Serial2MqttGateway::getMqttConnectionOptions()
+{
+    return this->mqttConnectionOptions;
+}
+
 void Serial2MqttGateway::loadConfig()
 {
     Config * config = getConfigInstance();
 
     std::string id = config->getString( "GATEWAY_ID" );
-    std::string mqttCaFile = config->getString( "MQTT_CAFILE" );
+    std::string mqttProtocol = config->getString( "MQTT_PROTOCOL" );
     std::string mqttHost = config->getString( "MQTT_HOST" );
     int mqttPort = config->getInteger( "MQTT_PORT" );
+    int mqttWaitUntilReconnect = config->getInteger( "MQTT_WAIT_UNTIL_RECONNECT" );
+    std::string mqttServerCertificateFile = config->getString( "MQTT_SERVER_CERTIFICATE_FILE" );
+    std::string mqttClientCertificateFile = config->getString( "MQTT_CLIENT_CERTIFICATE_FILE" );
+    std::string mqttClientKeyFile = config->getString( "MQTT_CLIENT_KEY_FILE" );
     std::string mqttUsername = config->getString( "MQTT_USERNAME" );
     std::string mqttPassword = config->getString( "MQTT_PASSWORD" );
     std::string mqttTopicPrefix = config->getString( "MQTT_TOPIC_PREFIX" );
 
     setGatewayId( id );
-    setMqttCaFile( mqttCaFile );
+    setMqttProtocol( mqttProtocol );
     setMqttHost( mqttHost );
     setMqttPort( mqttPort );
+    setMqttWaitUntilReconnect( mqttWaitUntilReconnect );
+    setMqttServerCertificateFile( mqttServerCertificateFile );
+    setMqttClientCertificateFile( mqttClientCertificateFile );
+    setMqttClientKeyFile( mqttClientKeyFile );
     setMqttUsername( mqttUsername );
     setMqttPassword( mqttPassword );
     setMqttTopicPrefix( mqttTopicPrefix );
 }
 
+void Serial2MqttGateway::setMqttClientInstance( mqtt::async_client * mqttClientInstance )
+{
+    this->mqttClientInstance = mqttClientInstance;
+}
+
+mqtt::async_client * Serial2MqttGateway::getMqttClientInstance()
+{
+    return this->mqttClientInstance;
+}
+
 void Serial2MqttGateway::initMqtt()
 {
-    std::string caFile = getMqttCaFile();
+    mqtt::connect_options mqttConnectionOptions = mqtt::connect_options();
+    std::string protocol = getMqttProtocol();
 
-    mosqpp::lib_init();
-
-    if ( caFile != "none" )
+    if ( protocol == MQTT_PROTOCOL_SSL || protocol == MQTT_PROTOCOL_WSS )
     {
-        mosqpp::mosquittopp::tls_set( caFile.c_str() );
+        getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: Initialising for transport protocol '" + protocol + "'." ) );
+        mqtt::ssl_options sslOptions = mqtt::ssl_options();
+
+        std::string mqttServerCertificateFile = getMqttServerCertificateFile();
+        std::string mqttClientCertificateFile = getMqttClientCertificateFile();
+        std::string mqttClientKeyFile = getMqttClientKeyFile();
+
+        if ( mqttServerCertificateFile != MQTT_SSL_NO_FILE )
+        {
+            sslOptions.set_trust_store( mqttServerCertificateFile );
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: Loaded Server Certificate file from '" + mqttServerCertificateFile + "'." ) );
+        }
+        else
+        {
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: No Server Certificate file given." ) );
+        }
+
+        if ( mqttClientCertificateFile != MQTT_SSL_NO_FILE )
+        {
+            sslOptions.set_key_store( mqttClientCertificateFile );
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: Loaded Client Certificate file from '" + mqttClientCertificateFile + "'." ) );
+        }
+        else
+        {
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: No Client Certificate file given." ) );
+        }
+
+        if ( mqttClientKeyFile != MQTT_SSL_NO_FILE )
+        {
+            sslOptions.set_private_key( mqttClientKeyFile );
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: Loaded Client Key file from '" + mqttClientKeyFile + "'." ) );
+        }
+        else
+        {
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: No Client Key file given." ) );
+        }
+
+        sslOptions.set_error_handler
+        (
+            [this]( const std::string & msg )
+            {
+                getLoggerInstance()->writeError( std::string( "MQTT: SSL Error: " + msg ) );
+            }
+        );
+
+        mqttConnectionOptions.set_ssl( std::move( sslOptions ) );
+    }
+    else
+    {
+        getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: No secure communication initialised for transport protocol '" + protocol + "'." ) );
     }
 
-    mosqpp::mosquittopp::username_pw_set( getMqttUsername().c_str(), getMqttPassword().c_str() );
-    mosqpp::mosquittopp::will_set( getMqttTopic( "/" + TOPIC_CONNECTED ).c_str(), MESSAGE_DISCONNECTED.length(), MESSAGE_DISCONNECTED.c_str(), 2, true );
-    mosqpp::mosquittopp::connect_async( getMqttHost().c_str(), getMqttPort(), 60 );
-    mosqpp::mosquittopp::loop_start();
+    mqttConnectionOptions.set_user_name( getMqttUsername() );
+    mqttConnectionOptions.set_password( getMqttPassword() );
+    mqttConnectionOptions.set_will( mqtt::will_options( getMqttTopic( "/" + TOPIC_CONNECTED ), MESSAGE_DISCONNECTED, 2, true ) );
+    setMqttConnectionOptions( mqttConnectionOptions );
+
+    mqtt::async_client * mqttClientInstance = new mqtt::async_client( getMqttServerUri(), getGatewayId() );
+
+    mqttClientInstance->set_connected_handler
+    (
+        [this]( const std::string & connectionResponse )
+        {
+            onMqttConnect( connectionResponse );
+        }
+    );
+
+    mqttClientInstance->set_connection_lost_handler
+    (
+        [this]( const std::string & connectionResponse )
+        {
+            onMqttDisconnect( connectionResponse );
+        }
+    );
+
+    mqttClientInstance->set_message_callback
+    (
+        [this]( mqtt::const_message_ptr mqttMessage )
+        {
+            std::string topic = mqttMessage->get_topic();
+            std::string message = mqttMessage->to_string();
+
+            onMqttMessage( topic, message );
+        }
+    );
+
+    setMqttClientInstance( mqttClientInstance );
+    connectToMqttBroker();
+}
+
+void Serial2MqttGateway::connectToMqttBroker()
+{
+    try
+    {
+        getLoggerInstance()->writeInfo( std::string( "MQTT: Connecting to MQTT-Broker \"" + getMqttServerUri() + "\"." ) );
+        getLoggerInstance()->writeInfo( std::string( "MQTT: Waiting for connection to MQTT-Broker..." ) );
+
+        getMqttClientInstance()->connect()->wait();
+    }
+    catch ( const mqtt::exception & e )
+    {
+        getLoggerInstance()->writeError( std::string( "MQTT: Couldn't connect to MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\". Retrying... " ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( getMqttWaitUntilReconnect() ) );
+        std::thread( &Serial2MqttGateway::connectToMqttBroker, this ).detach();
+    }
+}
+
+void Serial2MqttGateway::reconnectToMqttBroker()
+{
+    getLoggerInstance()->writeInfo( std::string( "MQTT: Trying to reconnect to MQTT-Broker \"" + getMqttServerUri() + "\"." ) );
+
+    try
+    {
+        getMqttClientInstance()->reconnect();
+    }
+    catch ( const mqtt::exception & e )
+    {
+        getLoggerInstance()->writeError( std::string( "MQTT: Error while reconnecting to MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\". Retrying... " ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( getMqttWaitUntilReconnect() ) );
+        std::thread( &Serial2MqttGateway::reconnectToMqttBroker, this ).detach();
+    }
 }
 
 void Serial2MqttGateway::deleteMqttInstance()
 {
-    mosqpp::mosquittopp::loop_stop();
-    mosqpp::lib_cleanup();
+    try
+    {
+        getLoggerInstance()->writeInfo( std::string( "MQTT: Disconnecting from MQTT-Broker \"" + getMqttServerUri() + "\"." ) );
+        getMqttClientInstance()->disconnect()->wait();
+        getLoggerInstance()->writeInfo( std::string( "MQTT: Disconnected." ) );
+    }
+    catch ( const mqtt::exception & e )
+    {
+        getLoggerInstance()->writeError( std::string( "MQTT: Error while disconnecting from MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\". Retrying... " ) );
+        std::thread( &Serial2MqttGateway::deleteMqttInstance, this ).detach();
+    }
+
+    delete mqttClientInstance;
 }
 
-void Serial2MqttGateway::onMqttConnect( int connectionResponse )
+void Serial2MqttGateway::onMqttConnect( std::string connectionResponse )
 {
-    if ( connectionResponse == MQTT_CONNECTION_SUCCESSFUL )
-    {
-        getLoggerInstance()->writeInfo( std::string( "Connected to MQTT-Broker \"" + getMqttHost() + ":" + std::to_string( getMqttPort() ) + "\"." ) );
-        publishMqttMessage( getMqttTopic( "/" + TOPIC_CONNECTED ), MESSAGE_CONNECTED, 2, true );
-        subscribeToMqttTopic( getMqttTopic( "/" + TOPIC_COMMAND ), 2 );
-        subscribeToMqttTopic( getMqttTopic( "/" + TOPIC_DEVICES + "/+/" + TOPIC_COMMAND ), 2 );
-    }
-    else
-    {
-        getLoggerInstance()->writeError( std::string( "Couldn't connect to MQTT-Broker \"" + getMqttHost() + ":" + std::to_string( getMqttPort() ) + "\"." ) );
-    }
+    getLoggerInstance()->writeInfo( std::string( "MQTT: Connected to MQTT-Broker \"" + getMqttServerUri() + "\". Response code: \"" + connectionResponse + "\"." ) );
+
+    publishMqttMessage( getMqttTopic( "/" + TOPIC_CONNECTED ), MESSAGE_CONNECTED, 2, true );
+    subscribeToMqttTopic( getMqttTopic( "/" + TOPIC_COMMAND ), 2 );
+    subscribeToMqttTopic( getMqttTopic( "/" + TOPIC_DEVICES + "/+/" + TOPIC_COMMAND ), 2 );
+
 }
 
-void Serial2MqttGateway::onMqttDisconnect( int connectionResponse )
+void Serial2MqttGateway::onMqttDisconnect( std::string connectionResponse )
 {
-    getLoggerInstance()->writeError( std::string( "Disconnected from MQTT-Broker: \"" + getMqttHost() + ":" + std::to_string( getMqttPort() ) + "\"." ) );
-    getLoggerInstance()->writeInfo( std::string( "Trying to reconnect to MQTT-Broker \"" + getMqttHost() + ":" + std::to_string( getMqttPort() ) + "\"." ) );
-    mosqpp::mosquittopp::reconnect_async();
+    getLoggerInstance()->writeError( std::string( "MQTT: Disconnected from MQTT-Broker: \"" + getMqttServerUri() + "\". Response code: \"" + connectionResponse + "\"." ) );
+    reconnectToMqttBroker();
 }
 
 void Serial2MqttGateway::onMqttMessage( std::string topic, std::string message )
 {
+    getLoggerInstance()->writeInfo( std::string( "MQTT: Received message on topic \"" + topic + "\": \"" + message + "\"." ) );
+
     // Expression extracts ids from topics like:
     //  /<prefix>/gateways/<gatewayId>/command -> <gatewayId>
     //  /<prefix>/gateways/<gatewayId>/devices/<deviceId>/command -> <deviceId>
@@ -219,12 +421,14 @@ void Serial2MqttGateway::onMqttMessage( std::string topic, std::string message )
     // Expression extracts parent topics from topics like:
     //  /<prefix>/gateways/<gatewayId>/command -> gateways
     //  /<prefix>/gateways/<gatewayId>/devices/<deviceId>/command -> devices
+    // Based on that we can determine if as message is destined for the gateway itself or a specific device
+    // This logic can be easily extended to incorporate actions on other branches, on the same level of "devices"
     std::regex matchParentTopicExpression( "(?:.*\\/|)(.*)(?=\\/.*\\/" + TOPIC_COMMAND + ")" );
 
     std::smatch matchId, matchParentTopic;
     std::regex_search( topic, matchId, matchIdExpression );
     std::regex_search( topic, matchParentTopic, matchParentTopicExpression );
-    std::string id = matchId.str(); // Can bei either a deviceId or a gatewayId; depends on the context
+    std::string id = matchId.str(); // Can be either a deviceId or a gatewayId; depends on the context
     std::string parentTopic = matchParentTopic[1].str(); // Extract Capture-Group 1, not the whole match
 
     if ( parentTopic == TOPIC_DEVICES )
@@ -258,33 +462,52 @@ void Serial2MqttGateway::onMqttMessage( std::string topic, std::string message )
     }
 }
 
-void Serial2MqttGateway::publishMqttMessage( std::string topic, std::string message, int qos, bool retain )
+bool Serial2MqttGateway::publishMqttMessage( std::string topic, std::string message, int qos, bool retain )
 {
-    mosqpp::mosquittopp::publish(
-        NULL,
-        topic.c_str(),
-        message.length(),
-        message.c_str(),
-        qos,
-        retain
-    );
+    try
+    {
+        getMqttClientInstance()->publish( topic, message, qos, retain );
+
+        return true;
+    }
+    catch ( const mqtt::exception & e )
+    {
+        getLoggerInstance()->writeError( std::string( "MQTT: Error while publishing message. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\"." ) );
+
+        return false;
+    }
 }
 
-void Serial2MqttGateway::subscribeToMqttTopic( std::string topic, int qos )
+bool Serial2MqttGateway::subscribeToMqttTopic( std::string topic, int qos )
 {
-    mosqpp::mosquittopp::subscribe(
-        NULL,
-        topic.c_str(),
-        qos
-    );
+    try
+    {
+        getMqttClientInstance()->subscribe( topic, qos );
+
+        return true;
+    }
+    catch ( const mqtt::exception & e )
+    {
+        getLoggerInstance()->writeError( std::string( "MQTT: Error while sending subscribing to topic. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\"." ) );
+
+        return false;
+    }
 }
 
-void Serial2MqttGateway::unsubscribeFromMqttTopic( std::string topic )
+bool Serial2MqttGateway::unsubscribeFromMqttTopic( std::string topic )
 {
-    mosqpp::mosquittopp::unsubscribe(
-        NULL,
-        topic.c_str()
-    );
+    try
+    {
+        getMqttClientInstance()->unsubscribe( topic );
+
+        return true;
+    }
+    catch ( const mqtt::exception & e )
+    {
+        getLoggerInstance()->writeError( std::string( "MQTT: Error while unsubscribing from topic. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\"." ) );
+
+        return false;
+    }
 }
 
 void Serial2MqttGateway::publishSerialMessageToMqtt( SerialMessage serialMessage )
@@ -459,24 +682,6 @@ void Serial2MqttGateway::commandDeleteAllDevices()
     getLoggerInstance()->writeWarn( "-> " + response );
 
     publishMqttMessage( getMqttTopic( "/" + TOPIC_RESPONSE ), response, 2, true );
-}
-
-void Serial2MqttGateway::on_connect( int connectionResponse )
-{
-    onMqttConnect( connectionResponse );
-}
-
-void Serial2MqttGateway::on_disconnect( int connectionResponse )
-{
-    onMqttDisconnect( connectionResponse );
-}
-
-void Serial2MqttGateway::on_message( const struct mosquitto_message * mqttMessage )
-{
-    std::string topic = std::string( mqttMessage->topic );
-    std::string message( (const char *)mqttMessage->payload, mqttMessage->payloadlen );
-
-    onMqttMessage( topic, message );
 }
 
 void Serial2MqttGateway::start()

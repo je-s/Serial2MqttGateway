@@ -22,14 +22,20 @@
 
 // C++ Standard Libraries
 #include <regex>
+#include <thread>
+#include <chrono>
 
-// Mosquitto Library
-#include <mosquittopp.h>
+// Paho MQTT CPP Library
+#include <mqtt/async_client.h>
 
-class Serial2MqttGateway : public SerialPortGateway, public mosqpp::mosquittopp // Inherits from both SerialPortGateway and mosquittopp
+class Serial2MqttGateway : public SerialPortGateway // Inherits from SerialPortGateway
 {
 private:
     // Constants
+    static const std::string MQTT_SSL_NO_FILE;
+    static const std::string MQTT_PROTOCOL_SSL;
+    static const std::string MQTT_PROTOCOL_WSS;
+    static const std::string MQTT_CONNECTION_SUCCESSFUL;
     static const std::string TOPIC_STATUS;
     static const std::string TOPIC_DEVICES;
     static const std::string TOPIC_COMMAND;
@@ -47,26 +53,40 @@ private:
     static const std::string COMMAND_ADDNEWDEVICES;
     static const std::string COMMAND_DELETEDEVICE;
     static const std::string COMMAND_DELETEALLDEVICES;
-    static const int MQTT_CONNECTION_SUCCESSFUL = 0;
 
     // Variables
     std::string id;
-    std::string mqttCaFile;
+    std::string mqttProtocol;
     std::string mqttHost;
     int mqttPort;
+    int mqttWaitUntilReconnect;
+    std::string mqttServerCertificateFile;
+    std::string mqttClientCertificateFile;
+    std::string mqttClientKeyFile;
     std::string mqttUsername;
     std::string mqttPassword;
     std::string mqttTopicPrefix;
+    mqtt::connect_options mqttConnectionOptions;
+    mqtt::async_client * mqttClientInstance;
 
     // Methods
     void setGatewayId( std::string id );
     std::string getGatewayId();
+    void setMqttProtocol( std::string mqttProtocol );
+    std::string getMqttProtocol();
     void setMqttHost( std::string mqttHost );
     std::string getMqttHost();
     void setMqttPort( int mqttPort );
     int getMqttPort();
-    void setMqttCaFile( std::string mqttCaFile );
-    std::string getMqttCaFile();
+    void setMqttWaitUntilReconnect( int mqttWaitUntilReconnect );
+    int getMqttWaitUntilReconnect();
+    std::string getMqttServerUri();
+    void setMqttServerCertificateFile( std::string mqttServerCertificateFile );
+    std::string getMqttServerCertificateFile();
+    void setMqttClientCertificateFile( std::string mqttClientCertificateFile );
+    std::string getMqttClientCertificateFile();
+    void setMqttClientKeyFile( std::string mqttClientKeyFile );
+    std::string getMqttClientKeyFile();
     void setMqttUsername( std::string mqttUsername );
     std::string getMqttUsername();
     void setMqttPassword( std::string mqttPassword );
@@ -74,17 +94,23 @@ private:
     void setMqttTopicPrefix( std::string mqttTopicPrefix );
     std::string getMqttTopicPrefix();
     std::string getMqttTopic( std::string appendix = "" );
+    void setMqttConnectionOptions( mqtt::connect_options mqttConnectionOptions );
+    mqtt::connect_options getMqttConnectionOptions();
 
+    void setMqttClientInstance( mqtt::async_client * mqttClientInstance );
+    mqtt::async_client * getMqttClientInstance();
     void loadConfig();
     void initMqtt();
+    void connectToMqttBroker();
+    void reconnectToMqttBroker();
     void deleteMqttInstance();
 
-    void onMqttConnect( int connectionResponse );
-    void onMqttDisconnect( int connectionResponse );
+    void onMqttConnect( std::string connectionResponse );
+    void onMqttDisconnect( std::string connectionResponse );
     void onMqttMessage( std::string topic, std::string command );
-    void publishMqttMessage( std::string topic, std::string message, int qos = 2, bool retain = false );
-    void subscribeToMqttTopic( std::string topic, int qos = 2 );
-    void unsubscribeFromMqttTopic( std::string topic );
+    bool publishMqttMessage( std::string topic, std::string message, int qos = 2, bool retain = false );
+    bool subscribeToMqttTopic( std::string topic, int qos = 2 );
+    bool unsubscribeFromMqttTopic( std::string topic );
 
     void publishSerialMessageToMqtt( SerialMessage serialMessage );
     void processGatewayCommand( std::string command );
@@ -97,11 +123,6 @@ private:
     void commandAddNewDevices();
     void commandDeleteDevice( std::string deviceId );
     void commandDeleteAllDevices();
-
-    // Private Methods - Mosquitto-Internal MQTT-Callbacks
-    void on_connect( int connectionResponse );
-    void on_disconnect( int connectionResponse );
-    void on_message( const struct mosquitto_message *message );
 
 public:
     // Constructors

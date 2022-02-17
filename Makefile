@@ -1,9 +1,9 @@
-VERSION                     =       1.0
+VERSION                     =       1.1
 DOCKER_IMAGE_NAME           =       serial2mqttgateway
 DOCKER_IMAGE_TAG            =       latest
 CXX                         =       /usr/bin/g++-6
 CFLAGS                      =       -std=c++1y -Wall
-LIBS                        =       -L/tmp/usr/local/lib -lpthread -lserial -lmosquittopp
+LIBS                        =       -L/tmp/usr/local/lib -L/usr/local/lib -lpthread -lserial -lpaho-mqtt3as -lpaho-mqttpp3
 INCLUDES                    =       -I/repos/serial/include/
 SRC_DIR                     =       ./src
 LOCAL_DEPENDENCIES_DIR      =       ./dependencies/SerialPortGateway
@@ -35,7 +35,7 @@ buildMsg:
 	@echo "\e[92m---- Building \"$(BIN_NAME)\"...\e[0m"
 
 build: $(OBJS)
-	@$(CXX) $(CFLAGS) -o $(BIN_DIR)/$(BIN_NAME) $(SRC_DIR)/$(SRC_NAME_MAIN) $(LIBS) $(INCLUDES) $(OBJS)
+	@$(CXX) $(CFLAGS) -o $(BIN_DIR)/$(BIN_NAME) $(SRC_DIR)/$(SRC_NAME_MAIN) $(OBJS) $(LIBS) $(INCLUDES)
 	@echo "\e[92m---- DONE.\e[0m"
 
 %.o: %.cpp

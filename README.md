@@ -189,12 +189,15 @@ On top of the mandatory configuration keys defined [here](https://github.com/je-
 | Key | Purpose | Value Description | Default |
 | --- | ------- | ----------------- | ------- |
 | GATEWAY_ID | ID of the gateway<br>Needed to use and distinguish multiple gateways on the same topic level from one another<br>Is also important to be able to receive gateway commands | String | `testgateway1` |
-| MQTT_CAFILE | Configuration on whether to use a CA file or not, in case you want to use encrypted communication for MQTT | String<br>`none` if no CA file is used<br>`<path/To/The/Ca/File>` if a CA file is used | `none` |
-| MQTT_HOST | MQTT host, where the broker is running | String (Hostname or IP) | `broker.hivemq.com` |
+| MQTT_PROTOCOL | Specifies the protocol to use for communication with a broker | String<br><br>- `tcp` for unencrypted MQTT/TCP communication<br>- `ssl` for encrypted MQTT/TCP communication<br>- `ws` for unencrypted websocket communication<br>- `wss` for encrypted websocket communication | `tcp`
+| MQTT_CA_FILE | Configuration on whether to use a CA file or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no CA file is used<br>- `<path/to/caFile>` if a CA file is used | `none` |
+| MQTT_KEY_FILE | Configuration on whether to use a client key file or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no key file is used<br>- `<path/to/keyFile>` if a key file is used | `none` |
+| MQTT_HOST | MQTT host, where the broker is running | String<br><br> Hostname or IP | `test.mosquitto.org` |
 | MQTT_PORT | MQTT port, where the broker is listening on | Port number | `1883` |
-| MQTT_USERNAME | MQTT username to use when logging in | String (Can be empty) | `test` |
-| MQTT_PASSWORD | MQTT password to use when logging in | String (Can be empty) | `Test1234` |
-| MQTT_TOPIC_PREFIX | MQTT topic prefix which should be used<br>Is set before every topic the Serial2MqttGateway is publishing on | String (Can be empty) | `test/gateways` |
+| MQTT_WAIT_UNTIL_RECONNECT | Time to wait until the next reconnect attempt in ms | Integer | `1000` |
+| MQTT_USERNAME | MQTT username to use when logging in | String<br><br>Can be empty | `test` |
+| MQTT_PASSWORD | MQTT password to use when logging in | String<br><br>Can be empty | `Test1234` |
+| MQTT_TOPIC_PREFIX | MQTT topic prefix which should be used<br>Is set before every topic the Serial2MqttGateway is publishing on | String<br><br>Can be empty | `test/gateways` |
 
 ### Hardware ID Whitelist
 The hardware ID whitelist lists all allowed hardware IDs;
