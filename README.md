@@ -74,7 +74,10 @@ In case you want to use the Serial2MqttGateway without Docker, you need the foll
     * git must be version 2 or higher.
 * [wjwwood's serial library](https://github.com/wjwwood/serial). This also requires:
     * cmake, python, python-pip, catkin
-* libmosquittopp-dev
+* [paho.mqtt.c](https://github.com/eclipse/paho.mqtt.c.git)
+    * must be version 1.3.9 or higher
+* [paho.mqtt.cpp](https://github.com/eclipse/paho.mqtt.cpp.git)
+    * must be version 1.2.0 or higher
 
 If there's anything not working, try to sync your configuration with that from the Dockerfile (Or drop me an issue if nothing helps).
 
