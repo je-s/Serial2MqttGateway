@@ -9,8 +9,10 @@ services:
             - ${GATEWAY_CONFIG}:/config/config.cfg
             - ${HARDWARE_WHITELIST}:/config/hardware-whitelist.txt
             - ${SERIALPORT_BLACKLIST}:/config/port-blacklist.txt
-            - ${MQTT_CERT}:/config/cert/trustid-x3-root.pem
-#            - ${LOG_PATH}:/logs
+            - ${MQTT_SERVER_CERT}:/config/cert/mosquitto.org.crt
+            - ${MQTT_CLIENT_CERT}:/config/cert/client.crt
+            - ${MQTT_CLIENT_KEY}:/config/cert/client.key
+            #            - ${LOG_PATH}:/logs
         stdin_open: true
         tty: true
         entrypoint: /bin/bash
@@ -22,8 +24,10 @@ services:
             - ${GATEWAY_CONFIG}:/config/config.cfg
             - ${HARDWARE_WHITELIST}:/config/hardware-whitelist.txt
             - ${SERIALPORT_BLACKLIST}:/config/port-blacklist.txt
-            - ${MQTT_CERT}:/config/cert/trustid-x3-root.pem
-#            - ${LOG_PATH}:/logs
+            - ${MQTT_SERVER_CERT}:/config/cert/mosquitto.org.crt
+            - ${MQTT_CLIENT_CERT}:/config/cert/client.crt
+            - ${MQTT_CLIENT_KEY}:/config/cert/client.key
+            #            - ${LOG_PATH}:/logs
         stdin_open: true
         tty: true
         restart: unless-stopped

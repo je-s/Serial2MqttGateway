@@ -191,15 +191,17 @@ On top of the mandatory configuration keys defined [here](https://github.com/je-
 
 | Key | Purpose | Value Description | Default |
 | --- | ------- | ----------------- | ------- |
-| GATEWAY_ID | ID of the gateway<br>Needed to use and distinguish multiple gateways on the same topic level from one another<br>Is also important to be able to receive gateway commands | String | `testgateway1` |
+| GATEWAY_ID | - ID of the gateway<br>- Needed to use and distinguish multiple gateways on the same topic level from one another<br>- Is also required to be able to receive gateway commands | String | `testgateway1` |
 | MQTT_PROTOCOL | Specifies the protocol to use for communication with a broker | String<br><br>- `tcp` for unencrypted MQTT/TCP communication<br>- `ssl` for encrypted MQTT/TCP communication<br>- `ws` for unencrypted websocket communication<br>- `wss` for encrypted websocket communication | `tcp`
-| MQTT_CA_FILE | Configuration on whether to use a CA file or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no CA file is used<br>- `<path/to/caFile>` if a CA file is used | `none` |
-| MQTT_KEY_FILE | Configuration on whether to use a client key file or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no key file is used<br>- `<path/to/keyFile>` if a key file is used | `none` |
+| MQTT_CERTIFICATE_AUTHORITY_PATH | Specifies the location of all trusted CA files, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no CA trust store is used<br>- `<path/to/ca/files>` if a CA trust store is used | `/etc/ssl/certs/` |
+| MQTT_SERVER_CERTIFICATE_FILE | Configuration on whether to use a server certificate or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no server certificate is used<br>- `<path/to/serverCertificateFile>` if a server certificate is used | `none` |
+| MQTT_CLIENT_CERTIFICATE_FILE | Configuration on whether to use a client certificate or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no client certificate is used<br>- `<path/to/clientCertificateFile>` if a client certificate is used | `none` |
+| MQTT_CLIENT_KEY_FILE | Configuration on whether to use a client certificate or not, in case you want to use encrypted communication for MQTT | String<br><br>- `none` if no client certificate is used<br>- `<path/to/clientKeyFile>` if a client certificate is used | `none` |
 | MQTT_HOST | MQTT host, where the broker is running | String<br><br> Hostname or IP | `test.mosquitto.org` |
 | MQTT_PORT | MQTT port, where the broker is listening on | Port number | `1883` |
 | MQTT_WAIT_UNTIL_RECONNECT | Time to wait until the next reconnect attempt in ms | Integer | `1000` |
-| MQTT_USERNAME | MQTT username to use when logging in | String<br><br>Can be empty | `test` |
-| MQTT_PASSWORD | MQTT password to use when logging in | String<br><br>Can be empty | `Test1234` |
+| MQTT_USERNAME | MQTT username to use when logging in | String<br><br>Can be empty |  |
+| MQTT_PASSWORD | MQTT password to use when logging in | String<br><br>Can be empty |  |
 | MQTT_TOPIC_PREFIX | MQTT topic prefix which should be used<br>Is set before every topic the Serial2MqttGateway is publishing on | String<br><br>Can be empty | `test/gateways` |
 
 ### Hardware ID Whitelist
@@ -268,7 +270,7 @@ Meaning: If more ports should be used than when the container was initially star
 
 # License
 ```
-   Copyright 2019 Jan-Eric Schober
+   Copyright 2019-2022 Jan-Eric Schober
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

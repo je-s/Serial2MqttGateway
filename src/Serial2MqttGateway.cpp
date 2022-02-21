@@ -16,6 +16,7 @@
 
 #include "Serial2MqttGateway.hpp"
 
+const std::string Serial2MqttGateway::MQTT_SSL_NO_PATH = "none";
 const std::string Serial2MqttGateway::MQTT_SSL_NO_FILE = "none";
 const std::string Serial2MqttGateway::MQTT_PROTOCOL_SSL = "ssl";
 const std::string Serial2MqttGateway::MQTT_PROTOCOL_WSS = "wss";
@@ -118,6 +119,16 @@ std::string Serial2MqttGateway::getMqttServerUri()
     return std::string( getMqttProtocol() + "://" + getMqttHost() + ":" + std::to_string( getMqttPort() ) );
 }
 
+void Serial2MqttGateway::setMqttCertificateAuthorityPath( std::string mqttCertificateAuthorityPath )
+{
+    this->mqttCertificateAuthorityPath = mqttCertificateAuthorityPath;
+}
+
+std::string Serial2MqttGateway::getMqttCertificateAuthorityPath()
+{
+    return this->mqttCertificateAuthorityPath;
+}
+
 void Serial2MqttGateway::setMqttServerCertificateFile( std::string mqttServerCertificateFile )
 {
     this->mqttServerCertificateFile = mqttServerCertificateFile;
@@ -216,6 +227,7 @@ void Serial2MqttGateway::loadConfig()
     std::string mqttHost = config->getString( "MQTT_HOST" );
     int mqttPort = config->getInteger( "MQTT_PORT" );
     int mqttWaitUntilReconnect = config->getInteger( "MQTT_WAIT_UNTIL_RECONNECT" );
+    std::string mqttCertificateAuthorityPath = config->getString( "MQTT_CERTIFICATE_AUTHORITY_PATH" );
     std::string mqttServerCertificateFile = config->getString( "MQTT_SERVER_CERTIFICATE_FILE" );
     std::string mqttClientCertificateFile = config->getString( "MQTT_CLIENT_CERTIFICATE_FILE" );
     std::string mqttClientKeyFile = config->getString( "MQTT_CLIENT_KEY_FILE" );
@@ -228,6 +240,7 @@ void Serial2MqttGateway::loadConfig()
     setMqttHost( mqttHost );
     setMqttPort( mqttPort );
     setMqttWaitUntilReconnect( mqttWaitUntilReconnect );
+    setMqttCertificateAuthorityPath( mqttCertificateAuthorityPath );
     setMqttServerCertificateFile( mqttServerCertificateFile );
     setMqttClientCertificateFile( mqttClientCertificateFile );
     setMqttClientKeyFile( mqttClientKeyFile );
@@ -256,9 +269,20 @@ void Serial2MqttGateway::initMqtt()
         getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: Initialising for transport protocol '" + protocol + "'." ) );
         mqtt::ssl_options sslOptions = mqtt::ssl_options();
 
+        std::string mqttCertificateAuthorityPath = getMqttCertificateAuthorityPath();
         std::string mqttServerCertificateFile = getMqttServerCertificateFile();
         std::string mqttClientCertificateFile = getMqttClientCertificateFile();
         std::string mqttClientKeyFile = getMqttClientKeyFile();
+
+        if ( mqttCertificateAuthorityPath != MQTT_SSL_NO_PATH )
+        {
+            sslOptions.ca_path( mqttCertificateAuthorityPath );
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: Set Certificate Authority directory to '" + mqttCertificateAuthorityPath + "'." ) );
+        }
+        else
+        {
+            getLoggerInstance()->writeInfo( std::string( "MQTT: SSL: No Certificate Authority directory given." ) );
+        }
 
         if ( mqttServerCertificateFile != MQTT_SSL_NO_FILE )
         {
@@ -350,11 +374,11 @@ void Serial2MqttGateway::connectToMqttBroker()
         getLoggerInstance()->writeInfo( std::string( "MQTT: Connecting to MQTT-Broker \"" + getMqttServerUri() + "\"." ) );
         getLoggerInstance()->writeInfo( std::string( "MQTT: Waiting for connection to MQTT-Broker..." ) );
 
-        getMqttClientInstance()->connect()->wait();
+        getMqttClientInstance()->connect( getMqttConnectionOptions() )->wait();
     }
     catch ( const mqtt::exception & e )
     {
-        getLoggerInstance()->writeError( std::string( "MQTT: Couldn't connect to MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\". Retrying... " ) );
+        getLoggerInstance()->writeError( std::string( "MQTT: Couldn't connect to MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\", what: \"" + e.what() + "\". Retrying... " ) );
         std::this_thread::sleep_for( std::chrono::milliseconds( getMqttWaitUntilReconnect() ) );
         std::thread( &Serial2MqttGateway::connectToMqttBroker, this ).detach();
     }
@@ -370,7 +394,7 @@ void Serial2MqttGateway::reconnectToMqttBroker()
     }
     catch ( const mqtt::exception & e )
     {
-        getLoggerInstance()->writeError( std::string( "MQTT: Error while reconnecting to MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\". Retrying... " ) );
+        getLoggerInstance()->writeError( std::string( "MQTT: Error while reconnecting to MQTT-Broker. Reason code: \"" + std::to_string( e.get_reason_code() ) + "\", message: \"" + e.get_message() + "\", what: \"" + e.what() + "\". Retrying... " ) );
         std::this_thread::sleep_for( std::chrono::milliseconds( getMqttWaitUntilReconnect() ) );
         std::thread( &Serial2MqttGateway::reconnectToMqttBroker, this ).detach();
     }

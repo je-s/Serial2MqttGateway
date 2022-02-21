@@ -32,6 +32,7 @@ class Serial2MqttGateway : public SerialPortGateway // Inherits from SerialPortG
 {
 private:
     // Constants
+    static const std::string MQTT_SSL_NO_PATH;
     static const std::string MQTT_SSL_NO_FILE;
     static const std::string MQTT_PROTOCOL_SSL;
     static const std::string MQTT_PROTOCOL_WSS;
@@ -60,6 +61,7 @@ private:
     std::string mqttHost;
     int mqttPort;
     int mqttWaitUntilReconnect;
+    std::string mqttCertificateAuthorityPath;
     std::string mqttServerCertificateFile;
     std::string mqttClientCertificateFile;
     std::string mqttClientKeyFile;
@@ -81,6 +83,8 @@ private:
     void setMqttWaitUntilReconnect( int mqttWaitUntilReconnect );
     int getMqttWaitUntilReconnect();
     std::string getMqttServerUri();
+    void setMqttCertificateAuthorityPath( std::string mqttCertificateAuthorityPath );
+    std::string getMqttCertificateAuthorityPath();
     void setMqttServerCertificateFile( std::string mqttServerCertificateFile );
     std::string getMqttServerCertificateFile();
     void setMqttClientCertificateFile( std::string mqttClientCertificateFile );
